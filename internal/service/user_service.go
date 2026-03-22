@@ -30,6 +30,11 @@ func (s *UserService) Register(email, password string) (*models.User, error) {
 		return nil, errors.New("invalid email format")
 	}
 
+	// 1.b Validate email length
+	if len(email) > 255 {
+		return nil, errors.New("email must not exceed 255 characters")
+	}
+
 	// 2. Validate password
 	if len(password) < 8 {
 		return nil, errors.New("password must be at least 8 characters long")

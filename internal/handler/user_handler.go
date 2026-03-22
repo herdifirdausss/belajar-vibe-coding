@@ -38,7 +38,7 @@ func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 	user, err := h.svc.Register(req.Email, req.Password)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "invalid email format" || err.Error() == "password must be at least 8 characters long" {
+		if err.Error() == "invalid email format" || err.Error() == "email must not exceed 255 characters" || err.Error() == "password must be at least 8 characters long" {
 			status = http.StatusBadRequest
 		}
 
