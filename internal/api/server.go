@@ -17,7 +17,8 @@ type Server struct {
 
 func NewServer(db *sql.DB) *Server {
 	userRepo := repository.NewUserRepository(db)
-	userSvc := service.NewUserService(userRepo)
+	sessionRepo := repository.NewSessionRepository(db)
+	userSvc := service.NewUserService(userRepo, sessionRepo)
 	userHandler := handler.NewUserHandler(userSvc)
 
 	return &Server{
@@ -30,6 +31,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/api/users", s.UserHandler.RegisterUserHandler)
+	mux.HandleFunc("/api/users/login", s.UserHandler.LoginHandler)
 	return mux
 }
 

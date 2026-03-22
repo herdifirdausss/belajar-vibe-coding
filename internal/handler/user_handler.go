@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/herdifirdausss/belajar-vibe-coding/internal/models"
 	"github.com/herdifirdausss/belajar-vibe-coding/internal/service"
 )
 
@@ -53,4 +54,41 @@ func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(user)
+}
+func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req models.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "Invalid request payload"})
+		return
+	}
+
+	token, err := h.svc.Login(req.Email, req.Password)
+	if err != nil {
+		status := http.StatusUnauthorized
+		if err.Error() == "invalid email format" || err.Error() == "email and password are required" {
+			status = http.StatusBadRequest
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		json.NewEncoder(w).Encode(models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	response := models.LoginResponse{
+		Data: models.LoginData{
+			Token: *token,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
