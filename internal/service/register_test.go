@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -15,8 +16,8 @@ func TestUserService_Register_EmailLength(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for email length 256, but got nil")
 	}
-	if err.Error() != "email must not exceed 255 characters" {
-		t.Errorf("expected error 'email must not exceed 255 characters', but got: %v", err)
+	if !errors.Is(err, ErrEmailTooLong) {
+		t.Errorf("expected ErrEmailTooLong, but got: %v", err)
 	}
 
 	// Test case: invalid email format
@@ -24,7 +25,7 @@ func TestUserService_Register_EmailLength(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid email format, but got nil")
 	}
-	if err.Error() != "invalid email format" {
-		t.Errorf("expected error 'invalid email format', but got: %v", err)
+	if !errors.Is(err, ErrInvalidEmailFormat) {
+		t.Errorf("expected ErrInvalidEmailFormat, but got: %v", err)
 	}
 }
