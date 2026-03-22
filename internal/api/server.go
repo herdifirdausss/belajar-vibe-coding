@@ -33,6 +33,7 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("/api/users", s.UserHandler.RegisterUserHandler)
 	mux.HandleFunc("/api/users/login", s.UserHandler.LoginHandler)
 	mux.HandleFunc("/api/users/me", s.UserHandler.GetMe)
+	mux.HandleFunc("/api/users/logout", s.UserHandler.LogoutHandler)
 	return mux
 }
 

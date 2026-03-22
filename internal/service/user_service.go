@@ -122,6 +122,14 @@ func (s *UserService) Me(token string) (*models.User, error) {
 	return user, nil
 }
 
+func (s *UserService) Logout(token string) error {
+	if token == "" {
+		return errors.New("unauthorized")
+	}
+
+	return s.sessionRepo.DeleteByToken(token)
+}
+
 func hashPassword(password string) (string, error) {
 	// Argon2id parameters
 	time := uint32(1)

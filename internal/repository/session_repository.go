@@ -28,3 +28,12 @@ func (r *SessionRepository) Create(session *models.Session) error {
 
 	return nil
 }
+
+func (r *SessionRepository) DeleteByToken(token string) error {
+	query := `DELETE FROM sessions WHERE token = $1`
+	_, err := r.DB.Exec(query, token)
+	if err != nil {
+		return fmt.Errorf("error deleting session: %w", err)
+	}
+	return nil
+}
