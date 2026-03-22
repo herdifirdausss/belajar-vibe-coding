@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/herdifirdausss/belajar-vibe-coding/internal/models"
@@ -38,7 +39,7 @@ func (h *UserHandler) RegisterUserHandler(w http.ResponseWriter, r *http.Request
 	user, err := h.svc.Register(req.Email, req.Password)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "invalid email format" || err.Error() == "password must be at least 8 characters long" {
+		if errors.Is(err, service.ErrInvalidEmailFormat) || errors.Is(err, service.ErrEmailTooLong) || errors.Is(err, service.ErrPasswordTooShort) {
 			status = http.StatusBadRequest
 		}
 
@@ -71,9 +72,11 @@ func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.svc.Login(req.Email, req.Password)
 	if err != nil {
-		status := http.StatusUnauthorized
-		if err.Error() == "invalid email format" || err.Error() == "email and password are required" {
+		status := http.StatusInternalServerError
+		if errors.Is(err, service.ErrInvalidEmailFormat) || errors.Is(err, service.ErrEmailOrPasswordMissing) {
 			status = http.StatusBadRequest
+		} else if errors.Is(err, service.ErrInvalidCredentials) {
+			status = http.StatusUnauthorized
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -110,7 +113,7 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	user, err := h.svc.Me(token)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "unauthorized" {
+		if errors.Is(err, service.ErrUnauthorized) {
 			status = http.StatusUnauthorized
 		}
 
@@ -150,7 +153,7 @@ func (h *UserHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	err := h.svc.Logout(token)
 	if err != nil {
 		status := http.StatusInternalServerError
-		if err.Error() == "unauthorized" {
+		if errors.Is(err, service.ErrUnauthorized) {
 			status = http.StatusUnauthorized
 		}
 

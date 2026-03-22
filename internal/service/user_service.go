@@ -14,6 +14,15 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+var (
+	ErrInvalidEmailFormat     = errors.New("invalid email format")
+	ErrEmailTooLong           = errors.New("email must not exceed 255 characters")
+	ErrPasswordTooShort       = errors.New("password must be at least 8 characters long")
+	ErrEmailOrPasswordMissing = errors.New("email and password are required")
+	ErrInvalidCredentials     = errors.New("email or password incorrect")
+	ErrUnauthorized           = errors.New("unauthorized")
+)
+
 type UserService struct {
 	userRepo    *repository.UserRepository
 	sessionRepo *repository.SessionRepository
@@ -27,12 +36,17 @@ func (s *UserService) Register(email, password string) (*models.User, error) {
 	// 1. Validate email
 	_, err := mail.ParseAddress(email)
 	if err != nil {
-		return nil, errors.New("invalid email format")
+		return nil, ErrInvalidEmailFormat
+	}
+
+	// 1.b Validate email length
+	if len(email) > 255 {
+		return nil, ErrEmailTooLong
 	}
 
 	// 2. Validate password
 	if len(password) < 8 {
-		return nil, errors.New("password must be at least 8 characters long")
+		return nil, ErrPasswordTooShort
 	}
 
 	// 3. Hash password
@@ -58,12 +72,12 @@ func (s *UserService) Register(email, password string) (*models.User, error) {
 func (s *UserService) Login(email, password string) (*string, error) {
 	// 1. Validate input
 	if email == "" || password == "" {
-		return nil, errors.New("email and password are required")
+		return nil, ErrEmailOrPasswordMissing
 	}
 
 	_, err := mail.ParseAddress(email)
 	if err != nil {
-		return nil, errors.New("invalid email format")
+		return nil, ErrInvalidEmailFormat
 	}
 
 	// 2. Find user by email
@@ -73,7 +87,7 @@ func (s *UserService) Login(email, password string) (*string, error) {
 	}
 
 	if user == nil {
-		return nil, errors.New("email or password incorrect")
+		return nil, ErrInvalidCredentials
 	}
 
 	// 3. Compare password
@@ -83,7 +97,7 @@ func (s *UserService) Login(email, password string) (*string, error) {
 	}
 
 	if !match {
-		return nil, errors.New("email or password incorrect")
+		return nil, ErrInvalidCredentials
 	}
 
 	// 4. Generate token
@@ -107,7 +121,7 @@ func (s *UserService) Login(email, password string) (*string, error) {
 
 func (s *UserService) Me(token string) (*models.User, error) {
 	if token == "" {
-		return nil, errors.New("unauthorized")
+		return nil, ErrUnauthorized
 	}
 
 	user, err := s.userRepo.FindByToken(token)
@@ -116,7 +130,7 @@ func (s *UserService) Me(token string) (*models.User, error) {
 	}
 
 	if user == nil {
-		return nil, errors.New("unauthorized")
+		return nil, ErrUnauthorized
 	}
 
 	return user, nil
@@ -124,7 +138,7 @@ func (s *UserService) Me(token string) (*models.User, error) {
 
 func (s *UserService) Logout(token string) error {
 	if token == "" {
-		return errors.New("unauthorized")
+		return ErrUnauthorized
 	}
 
 	return s.sessionRepo.DeleteByToken(token)
