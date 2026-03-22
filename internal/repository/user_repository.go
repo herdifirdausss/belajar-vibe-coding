@@ -45,3 +45,22 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 
 	return user, nil
 }
+
+func (r *UserRepository) FindByToken(token string) (*models.User, error) {
+	query := `
+		SELECT u.id, u.email, u.created_at
+		FROM users u
+		INNER JOIN sessions s ON u.id = s.user_id
+		WHERE s.token = $1
+	`
+	user := &models.User{}
+	err := r.DB.QueryRow(query, token).Scan(&user.ID, &user.Email, &user.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error finding user by token: %w", err)
+	}
+
+	return user, nil
+}

@@ -105,6 +105,23 @@ func (s *UserService) Login(email, password string) (*string, error) {
 	return &token, nil
 }
 
+func (s *UserService) Me(token string) (*models.User, error) {
+	if token == "" {
+		return nil, errors.New("unauthorized")
+	}
+
+	user, err := s.userRepo.FindByToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("error finding current user: %w", err)
+	}
+
+	if user == nil {
+		return nil, errors.New("unauthorized")
+	}
+
+	return user, nil
+}
+
 func hashPassword(password string) (string, error) {
 	// Argon2id parameters
 	time := uint32(1)
