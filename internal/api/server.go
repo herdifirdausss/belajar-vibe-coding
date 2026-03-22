@@ -4,19 +4,32 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+
+	"github.com/herdifirdausss/belajar-vibe-coding/internal/handler"
+	"github.com/herdifirdausss/belajar-vibe-coding/internal/repository"
+	"github.com/herdifirdausss/belajar-vibe-coding/internal/service"
 )
 
 type Server struct {
-	DB *sql.DB
+	DB          *sql.DB
+	UserHandler *handler.UserHandler
 }
 
 func NewServer(db *sql.DB) *Server {
-	return &Server{DB: db}
+	userRepo := repository.NewUserRepository(db)
+	userSvc := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userSvc)
+
+	return &Server{
+		DB:          db,
+		UserHandler: userHandler,
+	}
 }
 
 func (s *Server) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/api/users", s.UserHandler.RegisterUserHandler)
 	return mux
 }
 
