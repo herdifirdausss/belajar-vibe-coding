@@ -28,3 +28,20 @@ func (r *UserRepository) CreateUser(user *models.User) (*models.User, error) {
 
 	return user, nil
 }
+func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
+	query := `
+		SELECT id, email, password, created_at
+		FROM users
+		WHERE email = $1
+	`
+	user := &models.User{}
+	err := r.DB.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.Password, &user.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error finding user by email: %w", err)
+	}
+
+	return user, nil
+}

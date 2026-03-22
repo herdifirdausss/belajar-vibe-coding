@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/herdifirdausss/belajar-vibe-coding/internal/models"
@@ -14,11 +15,12 @@ import (
 )
 
 type UserService struct {
-	repo *repository.UserRepository
+	userRepo    *repository.UserRepository
+	sessionRepo *repository.SessionRepository
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(userRepo *repository.UserRepository, sessionRepo *repository.SessionRepository) *UserService {
+	return &UserService{userRepo: userRepo, sessionRepo: sessionRepo}
 }
 
 func (s *UserService) Register(email, password string) (*models.User, error) {
@@ -50,7 +52,57 @@ func (s *UserService) Register(email, password string) (*models.User, error) {
 	}
 
 	// 6. Call repository
-	return s.repo.CreateUser(user)
+	return s.userRepo.CreateUser(user)
+}
+
+func (s *UserService) Login(email, password string) (*string, error) {
+	// 1. Validate input
+	if email == "" || password == "" {
+		return nil, errors.New("email and password are required")
+	}
+
+	_, err := mail.ParseAddress(email)
+	if err != nil {
+		return nil, errors.New("invalid email format")
+	}
+
+	// 2. Find user by email
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		return nil, fmt.Errorf("error finding user: %w", err)
+	}
+
+	if user == nil {
+		return nil, errors.New("email or password incorrect")
+	}
+
+	// 3. Compare password
+	match, err := comparePassword(user.Password, password)
+	if err != nil {
+		return nil, fmt.Errorf("error comparing password: %w", err)
+	}
+
+	if !match {
+		return nil, errors.New("email or password incorrect")
+	}
+
+	// 4. Generate token
+	token := uuid.New().String()
+
+	// 5. Create session
+	session := &models.Session{
+		ID:     uuid.New(),
+		Token:  token,
+		UserID: user.ID,
+	}
+
+	// 6. Save session
+	err = s.sessionRepo.Create(session)
+	if err != nil {
+		return nil, fmt.Errorf("error creating session: %w", err)
+	}
+
+	return &token, nil
 }
 
 func hashPassword(password string) (string, error) {
@@ -74,4 +126,42 @@ func hashPassword(password string) (string, error) {
 
 	encoded := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, memory, time, threads, b64Salt, b64Hash)
 	return encoded, nil
+}
+
+func comparePassword(encodedHash, password string) (bool, error) {
+	// Format: $argon2id$v=19$m=65536,t=1,p=4$salt$hash
+	parts := strings.Split(encodedHash, "$")
+	if len(parts) != 6 {
+		return false, errors.New("invalid hash format")
+	}
+
+	var version int
+	_, err := fmt.Sscanf(parts[2], "v=%d", &version)
+	if err != nil {
+		return false, fmt.Errorf("error parsing version: %w", err)
+	}
+
+	var memory, time uint32
+	var threads uint8
+	_, err = fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &memory, &time, &threads)
+	if err != nil {
+		return false, fmt.Errorf("error parsing parameters: %w", err)
+	}
+
+	b64Salt := parts[4]
+	b64Hash := parts[5]
+
+	salt, err := base64.RawStdEncoding.DecodeString(b64Salt)
+	if err != nil {
+		return false, fmt.Errorf("error decoding salt: %w", err)
+	}
+
+	hash, err := base64.RawStdEncoding.DecodeString(b64Hash)
+	if err != nil {
+		return false, fmt.Errorf("error decoding hash: %w", err)
+	}
+
+	otherHash := argon2.IDKey([]byte(password), salt, time, memory, threads, uint32(len(hash)))
+
+	return string(hash) == string(otherHash), nil
 }
