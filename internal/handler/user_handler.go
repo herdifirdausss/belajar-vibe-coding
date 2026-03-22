@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/herdifirdausss/belajar-vibe-coding/internal/models"
 	"github.com/herdifirdausss/belajar-vibe-coding/internal/service"
@@ -100,22 +99,13 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
+	token, ok := r.Context().Value(models.TokenKey).(string)
+	if !ok || token == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "unauthorized"})
 		return
 	}
-
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "unauthorized"})
-		return
-	}
-	token := parts[1]
 
 	user, err := h.svc.Me(token)
 	if err != nil {
@@ -149,22 +139,13 @@ func (h *UserHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
+	token, ok := r.Context().Value(models.TokenKey).(string)
+	if !ok || token == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "unauthorized"})
 		return
 	}
-
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(models.ErrorResponse{Error: "unauthorized"})
-		return
-	}
-	token := parts[1]
 
 	err := h.svc.Logout(token)
 	if err != nil {

@@ -31,9 +31,19 @@ func (r *SessionRepository) Create(session *models.Session) error {
 
 func (r *SessionRepository) DeleteByToken(token string) error {
 	query := `DELETE FROM sessions WHERE token = $1`
-	_, err := r.DB.Exec(query, token)
+	res, err := r.DB.Exec(query, token)
 	if err != nil {
 		return fmt.Errorf("error deleting session: %w", err)
 	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("unauthorized")
+	}
+
 	return nil
 }
