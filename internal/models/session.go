@@ -29,3 +29,7 @@ type LoginData struct {
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
+type ContextKey string
+
+const TokenKey ContextKey = "token"

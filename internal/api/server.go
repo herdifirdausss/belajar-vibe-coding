@@ -32,7 +32,8 @@ func (s *Server) Routes() *http.ServeMux {
 	mux.HandleFunc("/health", s.handleHealth)
 	mux.HandleFunc("/api/users", s.UserHandler.RegisterUserHandler)
 	mux.HandleFunc("/api/users/login", s.UserHandler.LoginHandler)
-	mux.HandleFunc("/api/users/me", s.UserHandler.GetMe)
+	mux.HandleFunc("/api/users/me", s.AuthMiddleware(s.UserHandler.GetMe))
+	mux.HandleFunc("/api/users/logout", s.AuthMiddleware(s.UserHandler.LogoutHandler))
 	return mux
 }
 
